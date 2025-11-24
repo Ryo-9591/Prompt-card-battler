@@ -41,20 +41,20 @@
 
 ```mermaid
 graph TD
-    Client["Client Browser"]
+    Client["クライアント"]
     subgraph "Docker Environment"
-        NextJS["Next.js App (Frontend & API)"]
+        NextJS["Next.js App (フロントエンド & API)"]
         Ollama["Ollama Service (gemma3:1b)"]
     end
     External["Pollinations.ai API"]
 
-    Client -->|"1. Prompt Input"| NextJS
-    NextJS -->|"2. Generate Text Request"| Ollama
-    Ollama -->|"3. JSON Response (Stats/Flavor)"| NextJS
-    NextJS -->|"4. Generate Image Request"| External
-    External -->|"5. Image URL"| NextJS
-    NextJS -->|"6. Complete Card Data"| Client
-    Client -->|"7. Persist Data"| LocalStorage[("LocalStorage")]
+    Client -->|"1. プロンプト入力"| NextJS
+    NextJS -->|"2. テキスト生成リクエスト"| Ollama
+    Ollama -->|"3. JSONレスポンス (パラメータ/フレーバー)"| NextJS
+    NextJS -->|"4. 画像生成リクエスト"| External
+    External -->|"5. 画像URL"| NextJS
+    NextJS -->|"6. 完成したカードデータ"| Client
+    Client -->|"7. データ保存"| LocalStorage[("LocalStorage")]
 ```
 
 
