@@ -37,6 +37,27 @@
 - **State Management**: Zustand, LocalStorage (Persistence)
 - **Environment**: Docker Compose
 
+## アーキテクチャ (Architecture)
+
+```mermaid
+graph TD
+    Client["クライアント"]
+    subgraph "Docker Environment"
+        NextJS["Next.js App (フロントエンド & API)"]
+        Ollama["Ollama Service (gemma3:1b)"]
+    end
+    External["Pollinations.ai API"]
+
+    Client -->|"1. プロンプト入力"| NextJS
+    NextJS -->|"2. テキスト生成リクエスト"| Ollama
+    Ollama -->|"3. JSONレスポンス (パラメータ/フレーバー)"| NextJS
+    NextJS -->|"4. 画像生成リクエスト"| External
+    External -->|"5. 画像URL"| NextJS
+    NextJS -->|"6. 完成したカードデータ"| Client
+    Client -->|"7. データ保存"| LocalStorage[("LocalStorage")]
+```
+
+
 ## パフォーマンスについて (Performance Note)
 
 デフォルトではバランスの良い `gemma3:1b` モデルを使用するように設定されています。
