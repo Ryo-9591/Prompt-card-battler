@@ -32,7 +32,7 @@ export default function BattlePage() {
 
   const startBattle = () => {
     if (playerDeck.length === 0) {
-      alert("You need a deck to battle! Go to Deck Builder.");
+      alert("デッキがありません！デッキビルダーで作成してください。");
       return;
     }
     const battleLogs = simulateBattle(playerDeck, enemyDeck);
@@ -54,14 +54,14 @@ export default function BattlePage() {
   return (
     <div className="flex flex-col h-[calc(100vh-100px)] max-h-[900px]">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-4xl font-serif font-bold text-gold-500">Battle Arena</h1>
+        <h1 className="text-4xl font-serif font-bold text-gold-500">バトルアリーナ</h1>
         {!battleStarted ? (
           <button onClick={startBattle} className="bg-gold-600 hover:bg-gold-500 text-white font-bold py-2 px-4 rounded shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 text-xl px-8 py-3">
-            <Swords /> Start Battle
+            <Swords /> バトル開始
           </button>
         ) : (
           <button onClick={resetBattle} className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded shadow transition-all flex items-center gap-2">
-            <RotateCcw /> Reset
+            <RotateCcw /> リセット
           </button>
         )}
       </div>
@@ -76,7 +76,7 @@ export default function BattlePage() {
                  <CardComponent card={card} className="w-32 h-48 text-[10px]" />
               </div>
             ))}
-            {enemyDeck.length === 0 && <div className="text-slate-500 self-center">Enemy Deck Depleted</div>}
+            {enemyDeck.length === 0 && <div className="text-slate-500 self-center">敵デッキ切れ</div>}
           </div>
 
           <div className="text-center text-gold-500 font-bold text-2xl my-4">VS</div>
@@ -88,13 +88,13 @@ export default function BattlePage() {
                  <CardComponent card={card} className="w-32 h-48 text-[10px]" />
               </div>
             ))}
-             {playerDeck.length === 0 && <div className="text-slate-500 self-center">Your Deck Depleted</div>}
+             {playerDeck.length === 0 && <div className="text-slate-500 self-center">自分デッキ切れ</div>}
           </div>
         </div>
 
         {/* Battle Log */}
         <div className="bg-black/40 border border-slate-700 rounded-xl p-4 flex flex-col h-full overflow-hidden">
-          <h2 className="text-xl font-serif font-bold text-slate-300 mb-4 border-b border-slate-700 pb-2">Battle Log</h2>
+          <h2 className="text-xl font-serif font-bold text-slate-300 mb-4 border-b border-slate-700 pb-2">バトルログ</h2>
           <div className="flex-1 overflow-y-auto space-y-2 pr-2 font-mono text-sm">
             {visibleLogs.map((log, i) => (
               <div 

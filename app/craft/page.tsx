@@ -33,7 +33,7 @@ export default function CraftPage() {
       setGeneratedCard(data);
     } catch (error) {
       console.error(error);
-      alert("Failed to generate card. Please try again.");
+      alert("カードの生成に失敗しました。もう一度お試しください。");
     } finally {
       setLoading(false);
     }
@@ -49,8 +49,8 @@ export default function CraftPage() {
   return (
     <div className="flex flex-col items-center space-y-8 max-w-4xl mx-auto">
       <div className="text-center space-y-2">
-        <h1 className="text-4xl font-serif font-bold text-gold-500">Craft Your Destiny</h1>
-        <p className="text-slate-400">Describe a creature, spell, or artifact to forge a new card.</p>
+        <h1 className="text-4xl font-serif font-bold text-gold-500">運命のカードを創造せよ</h1>
+        <p className="text-slate-400">クリーチャー、呪文、アーティファクトを記述して、新たなカードを生み出そう。</p>
       </div>
 
       <form onSubmit={handleGenerate} className="w-full max-w-xl flex gap-2">
@@ -58,7 +58,7 @@ export default function CraftPage() {
           type="text"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="e.g. A dragon made of pure starlight that heals allies..."
+          placeholder="例: 純粋な星の光で作られ、味方を癒やすドラゴン..."
           className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-gold-500 transition-colors"
           disabled={loading}
         />
@@ -68,7 +68,7 @@ export default function CraftPage() {
           className="bg-gold-600 hover:bg-gold-500 text-white font-bold py-2 px-4 rounded shadow-lg transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? <Loader2 className="animate-spin" /> : <Sparkles />}
-          Forge
+          生成
         </button>
       </form>
 
@@ -76,7 +76,7 @@ export default function CraftPage() {
         {loading ? (
           <div className="flex flex-col items-center space-y-4 text-gold-500/50 animate-pulse">
             <Sparkles className="w-16 h-16" />
-            <p className="font-serif text-xl">The Blacksmith is working...</p>
+            <p className="font-serif text-xl">鍛冶師が作業中...</p>
           </div>
         ) : generatedCard ? (
           <div className="flex flex-col items-center space-y-6 animate-in fade-in zoom-in duration-500">
@@ -88,12 +88,12 @@ export default function CraftPage() {
               className={`bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-4 rounded shadow transition-all flex items-center gap-2 ${saved ? 'bg-green-600 hover:bg-green-600 cursor-default' : ''}`}
             >
               <Save size={18} />
-              {saved ? "Saved to Collection" : "Save to Collection"}
+              {saved ? "コレクションに保存済み" : "コレクションに保存"}
             </button>
           </div>
         ) : (
           <div className="text-slate-600 italic border-2 border-dashed border-slate-800 rounded-xl p-12">
-            Your creation will appear here
+            ここに生成されたカードが表示されます
           </div>
         )}
       </div>

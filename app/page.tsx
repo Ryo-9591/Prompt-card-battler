@@ -9,7 +9,7 @@ export default function Home() {
           Prompt Card Battler
         </h1>
         <p className="text-xl md:text-2xl text-slate-400 font-light tracking-wide">
-          Forge your destiny with words. Battle with AI-generated legends.
+          言葉で運命を切り拓け。AIが生み出す伝説と共に戦え。
         </p>
       </div>
 
@@ -20,8 +20,8 @@ export default function Home() {
             <div className="p-4 rounded-full bg-slate-950 border border-slate-800 group-hover:border-gold-500/50 group-hover:shadow-[0_0_20px_rgba(234,179,8,0.2)] transition-all">
               <Sparkles className="w-8 h-8 text-gold-500" />
             </div>
-            <h2 className="text-2xl font-serif font-bold text-slate-200 group-hover:text-gold-400 transition-colors">Craft Cards</h2>
-            <p className="text-slate-400 text-sm">Turn your imagination into playable cards using AI.</p>
+            <h2 className="text-2xl font-serif font-bold text-slate-200 group-hover:text-gold-400 transition-colors">カード作成</h2>
+            <p className="text-slate-400 text-sm">AIを使って想像力をカードに変えよう。</p>
           </div>
         </Link>
 
@@ -31,8 +31,8 @@ export default function Home() {
             <div className="p-4 rounded-full bg-slate-950 border border-slate-800 group-hover:border-blue-500/50 group-hover:shadow-[0_0_20px_rgba(59,130,246,0.2)] transition-all">
               <Layers className="w-8 h-8 text-blue-500" />
             </div>
-            <h2 className="text-2xl font-serif font-bold text-slate-200 group-hover:text-blue-400 transition-colors">Build Deck</h2>
-            <p className="text-slate-400 text-sm">Assemble your team of 5-8 champions.</p>
+            <h2 className="text-2xl font-serif font-bold text-slate-200 group-hover:text-blue-400 transition-colors">デッキ編成</h2>
+            <p className="text-slate-400 text-sm">5〜8枚の精鋭たちでチームを組もう。</p>
           </div>
         </Link>
 
@@ -42,8 +42,8 @@ export default function Home() {
             <div className="p-4 rounded-full bg-slate-950 border border-slate-800 group-hover:border-red-500/50 group-hover:shadow-[0_0_20px_rgba(239,68,68,0.2)] transition-all">
               <Swords className="w-8 h-8 text-red-500" />
             </div>
-            <h2 className="text-2xl font-serif font-bold text-slate-200 group-hover:text-red-400 transition-colors">Battle</h2>
-            <p className="text-slate-400 text-sm">Watch your deck fight in auto-battles.</p>
+            <h2 className="text-2xl font-serif font-bold text-slate-200 group-hover:text-red-400 transition-colors">バトル</h2>
+            <p className="text-slate-400 text-sm">作成したデッキでオートバトルに挑もう。</p>
           </div>
         </Link>
       </div>

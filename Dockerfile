@@ -28,6 +28,10 @@ COPY . .
 # Uncomment the following line in case you want to disable telemetry during the build.
 # ENV NEXT_TELEMETRY_DISABLED 1
 
+# Increase memory limit for build and disable Turbopack (use Webpack instead)
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+ENV TURBOPACK=0
+
 RUN \
   if [ -f yarn.lock ]; then yarn run build; \
   elif [ -f package-lock.json ]; then npm run build; \

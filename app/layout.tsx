@@ -7,8 +7,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const cinzel = Cinzel({ subsets: ["latin"], variable: "--font-cinzel" });
 
 export const metadata: Metadata = {
-  title: "Prompt Card Battler",
-  description: "AI-Powered TCG",
+  title: "プロンプト・カードバトラー",
+  description: "AI搭載トレーディングカードゲーム",
 };
 
 export default function RootLayout({
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ja">
       <body className={`${inter.variable} ${cinzel.variable} font-sans antialiased`} suppressHydrationWarning>
         <nav className="p-4 bg-slate-950/50 backdrop-blur-sm border-b border-slate-800 sticky top-0 z-50">
           <div className="container mx-auto flex justify-between items-center">
@@ -25,9 +25,9 @@ export default function RootLayout({
               Prompt Card Battler
             </Link>
             <div className="space-x-6 font-semibold text-slate-300">
-              <Link href="/craft" className="hover:text-white transition-colors">Craft</Link>
-              <Link href="/deck" className="hover:text-white transition-colors">Deck</Link>
-              <Link href="/battle" className="hover:text-white transition-colors">Battle</Link>
+              <Link href="/craft" className="hover:text-white transition-colors">カード作成</Link>
+              <Link href="/deck" className="hover:text-white transition-colors">デッキ編成</Link>
+              <Link href="/battle" className="hover:text-white transition-colors">バトル</Link>
             </div>
           </div>
         </nav>

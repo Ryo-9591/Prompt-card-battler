@@ -3,25 +3,8 @@ import { Card } from '@/lib/game-logic';
 
 export const maxDuration = 300; // ローカルLLMは時間がかかる場合があるため延長
 
-const SYSTEM_PROMPT = `
-You are a strict Game Master AI for a TCG. Convert user descriptions into card data (JSON).
-Rules:
-1. Cost (1-10). If stats/effects are too strong for Cost 10, mark as "Unplayable" (Cost 99).
-2. Reduce Cost SIGNIFICANTLY if the user includes "Disadvantages", "Self-Damage", or "Conditions".
-3. Elements: Fire (Aggro), Water (Trick), Nature (Growth), Light (Heal), Dark (Sacrifice).
-4. Keywords: Rush (Attack immediately), Guard (Taunt), Combo (Double hit), Revenge (Death rattle), Pierce (Ignore Guard).
-5. Explanation: Speak like a cynical blacksmith explaining why the cost is set that way.
-
-Output JSON format:
-{
-  "name": "Card Name",
-  "stats": { "attack": 0, "health": 0 },
-  "element": "Fire",
-  "keywords": ["Rush"],
-  "cost": 5,
-  "explanation": "..."
-}
-`;
+// 短縮版システムプロンプト（速度向上のため）
+const SYSTEM_PROMPT = `TCGカードをJSONで生成。Cost(1-10)、Elements:Fire/Water/Nature/Light/Dark、Keywords:Rush/Guard/Combo/Revenge/Pierce。カード名と説明は日本語。{"name":"","stats":{"attack":0,"health":0},"element":"Fire","keywords":[],"cost":5,"explanation":""}`;
 
 export async function POST(req: Request) {
   try {
@@ -36,9 +19,8 @@ export async function POST(req: Request) {
     
     // Ollamaの設定
     const OLLAMA_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
-    // ユーザー指定の "qwen3" ですが、現時点では qwen2.5 が一般的です。
-    // コンテナ内で `ollama pull qwen2.5` などを実行してモデルを用意してください。
-    const MODEL_NAME = process.env.OLLAMA_MODEL || 'qwen2.5'; 
+    // モデル名（タグは含めない、Ollamaが自動的に:latestを解決する）
+    const MODEL_NAME = process.env.OLLAMA_MODEL || 'qwen2.5';
 
     try {
       console.log(`Generating card with model: ${MODEL_NAME} at ${OLLAMA_URL}`);
@@ -52,29 +34,42 @@ export async function POST(req: Request) {
           model: MODEL_NAME,
           messages: [
             { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: `User Prompt: ${prompt}` }
+            { role: 'user', content: prompt }
           ],
           format: 'json', // JSONモードを強制
-          stream: false
+          stream: false,
+          options: {
+            num_predict: 200, // 出力トークン数を制限（速度向上）
+            temperature: 0.7, // 創造性を少し下げて速度向上
+            top_p: 0.9,
+            repeat_penalty: 1.1
+          }
         }),
       });
 
       if (!response.ok) {
-        throw new Error(`Ollama API error: ${response.statusText}`);
+        const errorText = await response.text();
+        console.error(`Ollama API error: ${response.status} ${response.statusText}`, errorText);
+        throw new Error(`Ollama API error: ${response.statusText} - ${errorText.substring(0, 200)}`);
       }
 
       const result = await response.json();
+      console.log('Ollama API response received:', JSON.stringify(result).substring(0, 500));
+      
       const content = result.message?.content;
       
       if (!content) {
+        console.error('No content in Ollama response:', result);
         throw new Error('No content received from Ollama');
       }
 
+      console.log('Parsing JSON content from Ollama...');
       const parsedData = JSON.parse(content);
+      console.log('Parsed card data:', parsedData);
 
       // Validate and ensure all required fields exist with defaults
       cardData = {
-        name: parsedData.name || "Unknown Card",
+        name: parsedData.name || "名もなきカード",
         stats: {
           attack: parsedData.stats?.attack ?? 0,
           health: parsedData.stats?.health ?? 1
@@ -82,23 +77,26 @@ export async function POST(req: Request) {
         element: parsedData.element || "Fire",
         keywords: Array.isArray(parsedData.keywords) ? parsedData.keywords : [],
         cost: parsedData.cost ?? 5,
-        explanation: parsedData.explanation || "A mysterious card."
+        explanation: parsedData.explanation || "謎めいたカードだ。"
       };
+      
+      console.log('Card data generated successfully:', cardData.name);
 
     } catch (err) {
       console.error("Local LLM Failed, falling back to mock:", err);
       // Fallback Mock Data
       cardData = {
-        name: "Fallback Warrior",
+        name: "身代わりの戦士",
         stats: { attack: 2, health: 2 },
         element: "Nature",
         keywords: [],
         cost: 2,
-        explanation: "The local forge is cold (Ollama connection failed). Here's a wooden sword."
+        explanation: "地元の鍛冶屋が休みだったようだ（Ollama接続失敗）。代わりに木の棒でも使っておけ。"
       };
     }
 
     // 2. Generate Image with Pollinations.ai (Free)
+    // 画像生成プロンプトは英語の方が精度が良い場合が多いが、日本語も含めてみる
     const imagePrompt = encodeURIComponent(`Fantasy card art, ${cardData.element} element, ${cardData.name}: ${prompt}. High quality, digital art, magical atmosphere.`);
     const seed = Math.floor(Math.random() * 1000000);
     const imageUrl = `https://image.pollinations.ai/prompt/${imagePrompt}?width=1024&height=1024&seed=${seed}&nologo=true&model=flux`;
