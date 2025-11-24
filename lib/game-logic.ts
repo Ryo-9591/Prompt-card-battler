@@ -35,68 +35,75 @@ export interface BattleLogEntry {
   type: 'info' | 'attack' | 'defeat' | 'victory';
 }
 
-export function simulateBattle(playerDeck: Card[], enemyDeck: Card[]): BattleLogEntry[] {
-  const logs: BattleLogEntry[] = [];
-  let turn = 1;
-  
-  // Clone decks to avoid mutating original state
-  const pDeck = playerDeck.map(c => ({ ...c, stats: { ...c.stats } }));
-  const eDeck = enemyDeck.map(c => ({ ...c, stats: { ...c.stats } }));
+export interface BattleCard extends Card {
+  originalStats: {
+    attack: number;
+    health: number;
+  };
+  canAttack: boolean;
+  isDead: boolean;
+}
 
-  logs.push({ turn: 0, message: "バトル開始！", type: 'info' });
+export function initializeBattleDeck(deck: Card[]): BattleCard[] {
+  return deck.map(card => ({
+    ...card,
+    stats: { ...card.stats }, // Clone stats
+    originalStats: { ...card.stats },
+    canAttack: true, // In this game, maybe cards can attack immediately? Or wait a turn? Let's say wait a turn usually, but for simplicity let's allow immediate attack or handle "summoning sickness" later. The requirement didn't specify. Shadowverse has summoning sickness (except Rush). Let's assume they are already on board for this MVP or can attack immediately for simplicity unless "Rush" keyword is present. 
+    // Wait, the prompt says "Shadowverse-like". In Shadowverse, followers can't attack face turn 1, but can attack followers if they have Rush.
+    // Since we don't have a "hand" and "play" phase, all cards start on board. So they should be able to attack immediately.
+    isDead: false,
+  }));
+}
 
-  while (pDeck.length > 0 && eDeck.length > 0) {
-    const pCard = pDeck[0];
-    const eCard = eDeck[0];
+export function calculateDamage(attacker: BattleCard, defender: BattleCard): { attackerDamage: number; defenderDamage: number; logs: string[] } {
+  const logs: string[] = [];
+  let attackerDamage = attacker.stats.attack;
+  let defenderDamage = defender.stats.attack;
 
-    logs.push({ turn, message: `ターン ${turn}: ${pCard.name} vs ${eCard.name}`, type: 'info' });
-
-    // Check Element Advantage
-    let pDmg = pCard.stats.attack;
-    let eDmg = eCard.stats.attack;
-
-    if (ELEMENT_ADVANTAGE[pCard.element] === eCard.element) {
-      pDmg += 2;
-      logs.push({ turn, message: `> ${pCard.name} の属性有利！ (攻撃力+2)`, type: 'info' });
-    }
-    if (ELEMENT_ADVANTAGE[eCard.element] === pCard.element) {
-      eDmg += 2;
-      logs.push({ turn, message: `> ${eCard.name} の属性有利！ (攻撃力+2)`, type: 'info' });
-    }
-
-    // Combat
-    eCard.stats.health -= pDmg;
-    pCard.stats.health -= eDmg;
-
-    logs.push({ turn, message: `${pCard.name} は ${eCard.name} に ${pDmg} のダメージ！`, type: 'attack' });
-    logs.push({ turn, message: `${eCard.name} は ${pCard.name} に ${eDmg} のダメージ！`, type: 'attack' });
-
-    // Check Deaths
-    if (pCard.stats.health <= 0) {
-      logs.push({ turn, message: `${pCard.name} は倒れた！`, type: 'defeat' });
-      pDeck.shift();
-    }
-    if (eCard.stats.health <= 0) {
-      logs.push({ turn, message: `${eCard.name} は倒れた！`, type: 'defeat' });
-      eDeck.shift();
-    }
-
-    turn++;
-    if (turn > 100) {
-      logs.push({ turn, message: "制限ターン到達！引き分け！", type: 'info' });
-      break;
-    }
+  // Element Advantage
+  if (ELEMENT_ADVANTAGE[attacker.element] === defender.element) {
+    attackerDamage += 2;
+    logs.push(`> ${attacker.name} の属性有利！ (攻撃力+2)`);
+  }
+  if (ELEMENT_ADVANTAGE[defender.element] === attacker.element) {
+    defenderDamage += 2;
+    logs.push(`> ${defender.name} の属性有利！ (攻撃力+2)`);
   }
 
-  if (pDeck.length > 0) {
-    logs.push({ turn, message: "勝利！あなたの勝ちです！", type: 'victory' });
-  } else if (eDeck.length > 0) {
-    logs.push({ turn, message: "敗北... あなたは負けました...", type: 'defeat' });
-  } else {
-    logs.push({ turn, message: "引き分け！両者全滅。", type: 'info' });
+  return { attackerDamage, defenderDamage, logs };
+}
+
+export function resolveCombat(attacker: BattleCard, defender: BattleCard): { 
+  attacker: BattleCard; 
+  defender: BattleCard; 
+  logs: BattleLogEntry[]; 
+} {
+  const turnLogs: BattleLogEntry[] = [];
+  const { attackerDamage, defenderDamage, logs: damageLogs } = calculateDamage(attacker, defender);
+
+  damageLogs.forEach(msg => turnLogs.push({ turn: 0, message: msg, type: 'info' })); // Turn 0 placeholder, will be overridden or ignored in UI display context if needed, or we pass turn number.
+
+  // Apply Damage
+  attacker.stats.health -= defenderDamage;
+  defender.stats.health -= attackerDamage;
+
+  turnLogs.push({ turn: 0, message: `${attacker.name} は ${defender.name} に ${attackerDamage} のダメージ！`, type: 'attack' });
+  turnLogs.push({ turn: 0, message: `${defender.name} は ${attacker.name} に ${defenderDamage} のダメージ！`, type: 'attack' });
+
+  // Check Death
+  if (attacker.stats.health <= 0) {
+    attacker.isDead = true;
+    attacker.stats.health = 0;
+    turnLogs.push({ turn: 0, message: `${attacker.name} は倒れた！`, type: 'defeat' });
+  }
+  if (defender.stats.health <= 0) {
+    defender.isDead = true;
+    defender.stats.health = 0;
+    turnLogs.push({ turn: 0, message: `${defender.name} は倒れた！`, type: 'defeat' });
   }
 
-  return logs;
+  return { attacker, defender, logs: turnLogs };
 }
 
 export const MOCK_ENEMY_DECK: Card[] = [
