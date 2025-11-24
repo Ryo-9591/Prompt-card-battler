@@ -8,7 +8,7 @@ services:
       - "3000:3000"
     environment:
       - OLLAMA_BASE_URL=http://ollama:11434
-      - OLLAMA_MODEL=qwen2.5
+      - OLLAMA_MODEL=gemma3:1b
     depends_on:
       - ollama
     restart: always
@@ -38,3 +38,12 @@ services:
         #   - driver: nvidia
         #     count: 1
         #     capabilities: [gpu]
+
+  ollama-pull:
+    image: curlimages/curl:latest
+    container_name: ollama-pull
+    depends_on:
+      - ollama
+    restart: "no"
+    command: >
+      sh -c "sleep 10; curl http://ollama:11434/api/pull -d '{\"name\": \"gemma3:1b\"}'"

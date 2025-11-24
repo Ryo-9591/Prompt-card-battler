@@ -5,6 +5,14 @@
   --color-slate-900: #0f172a;
   --color-slate-950: #020617;
   
+  --color-fantasy-gold: #ffd700;
+  --color-fantasy-gold-dim: #c5a000;
+  --color-fantasy-parchment: #f0e6d2;
+  --color-fantasy-parchment-dark: #d8c8a8;
+  --color-fantasy-crimson: #8a1c1c;
+  --color-fantasy-royal: #1a237e;
+  --color-fantasy-obsidian: #121212;
+
   --color-gold-400: #facc15;
   --color-gold-500: #eab308;
   --color-gold-600: #ca8a04;
@@ -20,18 +28,30 @@
 }
 
 :root {
-  --foreground-rgb: 255, 255, 255;
-  --background-start-rgb: 15, 23, 42;
-  --background-end-rgb: 2, 6, 23;
+  --foreground-rgb: 240, 230, 210;
+  --background-start-rgb: 10, 10, 15;
+  --background-end-rgb: 5, 5, 10;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  color: var(--color-fantasy-parchment);
+  background-color: var(--color-fantasy-obsidian);
+  background-image: 
+    radial-gradient(circle at 50% 0%, #3c1414 0%, transparent 70%),
+    radial-gradient(circle at 0% 100%, #14143c 0%, transparent 70%);
   min-height: 100vh;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #1a1a1a; 
+}
+::-webkit-scrollbar-thumb {
+  background: #444; 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #666; 
 }

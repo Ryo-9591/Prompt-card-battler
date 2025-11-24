@@ -1,10 +1,36 @@
 import { NextResponse } from 'next/server';
-import { Card } from '@/lib/game-logic';
+import { Card, ElementType } from '@/lib/game-logic';
 
 export const maxDuration = 300; // ローカルLLMは時間がかかる場合があるため延長
 
 // 短縮版システムプロンプト（速度向上のため）
-const SYSTEM_PROMPT = `TCGカードをJSONで生成。Cost(1-10)、Elements:Fire/Water/Nature/Light/Dark、Keywords:Rush/Guard/Combo/Revenge/Pierce。カード名と説明は日本語。{"name":"","stats":{"attack":0,"health":0},"element":"Fire","keywords":[],"cost":5,"explanation":""}`;
+const SYSTEM_PROMPT = `You are a veteran TCG designer. Create a balanced, strategic card in JSON format.
+
+Design Principles:
+1. **Balance**: Stats must match Cost. (e.g., Cost 3 ≈ 3/3 or 4/2).
+2. **Element Identity**:
+   - Fire: High Attack, Low Health. Keywords: Rush, Revenge.
+   - Water: High Health, Low Attack. Keywords: Guard.
+   - Nature: Balanced Stats. Keywords: Combo, Pierce.
+   - Light: Defensive. Keywords: Guard, Revenge.
+   - Dark: Aggressive. Keywords: Pierce, Revenge.
+3. **Keywords**: Choose 0-2 keywords relevant to the card's role.
+   - "Rush": For fast attackers.
+   - "Guard": For high health defenders.
+   - "Pierce": For high attack.
+   - "Combo": For low cost utility.
+   - "Revenge": For high health or aggressive trades.
+
+Strict Rules:
+1. Return ONLY valid JSON.
+2. JSON structure: {"explanation": "...", "name": "...", "element": "...", "stats": {"attack": ..., "health": ...}, "keywords": [...], "cost": ...}
+3. "explanation" and "name" MUST be in Japanese. Flavor text should be immersive.
+4. "element" values: "Fire", "Water", "Nature", "Light", "Dark".
+5. "keywords" allowed: "Rush", "Guard", "Combo", "Revenge", "Pierce". Do NOT include element names.
+
+Example:
+{"explanation":"溶岩の中から現れた怒れる巨人。","name":"マグマ・ジャイアント","element":"Fire","stats":{"attack":6,"health":3},"keywords":["Rush"],"cost":5}
+`;
 
 export async function POST(req: Request) {
   try {
@@ -15,12 +41,12 @@ export async function POST(req: Request) {
     }
 
     // 1. Generate Card Data with Local Ollama (Qwen)
-    let cardData;
+    let cardData: Omit<Card, 'id' | 'imageUrl'>;
     
     // Ollamaの設定
     const OLLAMA_URL = process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
     // モデル名（タグは含めない、Ollamaが自動的に:latestを解決する）
-    const MODEL_NAME = process.env.OLLAMA_MODEL || 'qwen2.5';
+    const MODEL_NAME = process.env.OLLAMA_MODEL || 'gemma3:1b';
 
     try {
       console.log(`Generating card with model: ${MODEL_NAME} at ${OLLAMA_URL}`);
@@ -39,8 +65,8 @@ export async function POST(req: Request) {
           format: 'json', // JSONモードを強制
           stream: false,
           options: {
-            num_predict: 200, // 出力トークン数を制限（速度向上）
-            temperature: 0.7, // 創造性を少し下げて速度向上
+            num_predict: 1000, // 通常のモデルなので1000程度で十分
+            temperature: 0.7, 
             top_p: 0.9,
             repeat_penalty: 1.1
           }
@@ -56,7 +82,7 @@ export async function POST(req: Request) {
       const result = await response.json();
       console.log('Ollama API response received:', JSON.stringify(result).substring(0, 500));
       
-      const content = result.message?.content;
+      let content = result.message?.content;
       
       if (!content) {
         console.error('No content in Ollama response:', result);
@@ -68,13 +94,18 @@ export async function POST(req: Request) {
       console.log('Parsed card data:', parsedData);
 
       // Validate and ensure all required fields exist with defaults
+      const validElements: ElementType[] = ["Fire", "Water", "Nature", "Light", "Dark"];
+      const rawElement = parsedData.element || "Nature";
+      // 大文字小文字を無視してマッチング、なければNature
+      const normalizedElement = validElements.find(e => e.toLowerCase() === rawElement.toLowerCase()) || "Nature";
+
       cardData = {
         name: parsedData.name || "名もなきカード",
         stats: {
           attack: parsedData.stats?.attack ?? 0,
           health: parsedData.stats?.health ?? 1
         },
-        element: parsedData.element || "Fire",
+        element: normalizedElement,
         keywords: Array.isArray(parsedData.keywords) ? parsedData.keywords : [],
         cost: parsedData.cost ?? 5,
         explanation: parsedData.explanation || "謎めいたカードだ。"

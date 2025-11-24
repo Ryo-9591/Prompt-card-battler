@@ -108,7 +108,7 @@ export const MOCK_ENEMY_DECK: Card[] = [
     keywords: [],
     cost: 1,
     explanation: '安価な捨て駒。',
-    imageUrl: 'https://placehold.co/400x600/1e293b/22c55e?text=Goblin',
+    imageUrl: 'https://image.pollinations.ai/prompt/Fantasy%20card%20art%2C%20Nature%20element%2C%20Goblin%20Infantry%3A%20Cheap%20fodder.%20High%20quality%2C%20digital%20art%2C%20magical%20atmosphere.?width=1024&height=1024&seed=101&nologo=true&model=flux',
   },
   {
     id: 'e2',
@@ -118,7 +118,7 @@ export const MOCK_ENEMY_DECK: Card[] = [
     keywords: ['Rush'],
     cost: 2,
     explanation: '燃え尽きるのは早い。',
-    imageUrl: 'https://placehold.co/400x600/1e293b/ef4444?text=Imp',
+    imageUrl: 'https://image.pollinations.ai/prompt/Fantasy%20card%20art%2C%20Fire%20element%2C%20Fire%20Imp%3A%20Burns%20out%20quickly.%20High%20quality%2C%20digital%20art%2C%20magical%20atmosphere.?width=1024&height=1024&seed=102&nologo=true&model=flux',
   },
   {
     id: 'e3',
@@ -128,7 +128,7 @@ export const MOCK_ENEMY_DECK: Card[] = [
     keywords: [],
     cost: 4,
     explanation: 'しぶとい。',
-    imageUrl: 'https://placehold.co/400x600/1e293b/3b82f6?text=Water',
+    imageUrl: 'https://image.pollinations.ai/prompt/Fantasy%20card%20art%2C%20Water%20element%2C%20Water%20Elemental%3A%20Resilient.%20High%20quality%2C%20digital%20art%2C%20magical%20atmosphere.?width=1024&height=1024&seed=103&nologo=true&model=flux',
   },
   {
     id: 'e4',
@@ -138,7 +138,7 @@ export const MOCK_ENEMY_DECK: Card[] = [
     keywords: [],
     cost: 6,
     explanation: '一撃が重い。',
-    imageUrl: 'https://placehold.co/400x600/1e293b/a855f7?text=Shadow',
+    imageUrl: 'https://image.pollinations.ai/prompt/Fantasy%20card%20art%2C%20Dark%20element%2C%20Shadow%20Knight%3A%20Heavy%20hitter.%20High%20quality%2C%20digital%20art%2C%20magical%20atmosphere.?width=1024&height=1024&seed=104&nologo=true&model=flux',
   },
   {
     id: 'e5',
@@ -148,6 +148,6 @@ export const MOCK_ENEMY_DECK: Card[] = [
     keywords: [],
     cost: 9,
     explanation: '最強の主。',
-    imageUrl: 'https://placehold.co/400x600/1e293b/ef4444?text=Dragon',
+    imageUrl: 'https://image.pollinations.ai/prompt/Fantasy%20card%20art%2C%20Fire%20element%2C%20Dragon%20Lord%3A%20The%20strongest%20lord.%20High%20quality%2C%20digital%20art%2C%20magical%20atmosphere.?width=1024&height=1024&seed=105&nologo=true&model=flux',
   },
 ];
