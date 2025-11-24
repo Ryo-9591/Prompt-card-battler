@@ -23,7 +23,7 @@
 
 ## 特徴
 
-- **AIカード生成**: ローカルLLM (**Qwen2.5**) によるパラメータ生成と、Pollinations.aiによるリアルタイム画像生成を組み合わせ、世界に一枚だけのカードを生み出します。
+- **AIカード生成**: ローカルLLM (**gemma3:1b**) によるパラメータ生成と、Pollinations.aiによるリアルタイム画像生成を組み合わせ、世界に一枚だけのカードを生み出します。
 - **ファンタジーUI**: 羊皮紙、金装飾、魔法のエフェクトなどを取り入れた、本格的なファンタジーデザイン。
 - **ダイナミックアニメーション**: Framer Motionを使用した、カードの攻撃、ダメージ、登場時のスムーズなアニメーション。
 - **レスポンシブデザイン**: デスクトップからタブレットまで、様々な画面サイズで美しく表示されるよう調整されています。
@@ -32,22 +32,22 @@
 
 - **Frontend**: Next.js 15 (App Router), React 19
 - **Styling**: Tailwind CSS v4, Framer Motion (Animations)
-- **AI (Text)**: **Ollama** running **gemma3:270m** (Ultra-lightweight)
+- **AI (Text)**: **Ollama** running **gemma3:1b** (Balanced & Strategic)
 - **AI (Image)**: Pollinations.ai (Free API)
 - **State Management**: Zustand, LocalStorage (Persistence)
 - **Environment**: Docker Compose
 
 ## パフォーマンスについて (Performance Note)
 
-デフォルトでは超軽量な `gemma3:270m` モデルを使用するように設定されています。
-もしGPUをお持ちで、より高品質なテキスト生成を行いたい場合は、`docker-compose.yml` の `OLLAMA_MODEL` を `gemma-2-9b-it` などに変更し、GPU設定のコメントアウトを外してください。
+デフォルトではバランスの良い `gemma3:1b` モデルを使用するように設定されています。
+もしGPUをお持ちで、より高品質なテキスト生成を行いたい場合は、`.env` ファイル（`.env.example` をコピーして作成）の `OLLAMA_MODEL` を `gemma-2-9b-it` などに変更し、`docker-compose.yml` のGPU設定のコメントアウトを外してください。
 
 ## 前提条件 (Prerequisites)
 
 このプロジェクトを実行するには、以下の環境が必要です：
 
 - **Docker & Docker Compose**
-    - ローカルLLM (Ollama/Qwen2.5) をコンテナで実行するために使用します。
+    - ローカルLLM (Ollama/gemma3:1b) をコンテナで実行するために使用します。
 - **画像生成**
     - **Pollinations.ai** を使用 (APIキー不要・無料)
 
@@ -56,20 +56,24 @@
 ### Dockerでの実行 (推奨)
 
 1.  リポジトリをクローンします。
-2.  Docker Composeを使用してビルド・起動します:
+2.  環境変数を設定します（オプション）:
+    ```bash
+    cp .env.example .env
+    ```
+3.  Docker Composeを使用してビルド・起動します:
     ```bash
     docker-compose up --build
     ```
-    初回起動時、Ollamaコンテナは `qwen2.5` モデルを自動的にダウンロードするため、完了まで数分かかる場合があります。
+    初回起動時、Ollamaコンテナは `gemma3:1b` モデルを自動的にダウンロードするため、完了まで数分かかる場合があります。
 
-3.  ブラウザで [http://localhost:3000](http://localhost:3000) を開きます。
+4.  ブラウザで [http://localhost:3000](http://localhost:3000) を開きます。
 
 ### ローカル開発 (Local Development)
 
-もしDockerを使わずにローカルで開発する場合は、別途Ollamaをインストールし、`qwen2.5` モデルをpullしておく必要があります。
+もしDockerを使わずにローカルで開発する場合は、別途Ollamaをインストールし、`gemma3:1b` モデルをpullしておく必要があります。
 
 1.  [Ollama](https://ollama.com/) をインストールし、起動します。
-2.  モデルをダウンロードします: `ollama pull qwen2.5`
+2.  モデルをダウンロードします: `ollama pull gemma3:1b`
 3.  依存関係をインストールします: `npm install`
 4.  開発サーバーを起動します: `npm run dev`
 
