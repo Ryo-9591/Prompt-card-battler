@@ -58,8 +58,9 @@ const ElementStyles = {
 };
 
 export function Card({ card, className, onClick, isEnemy }: CardProps) {
-  const Icon = ElementIcons[card.element];
-  const style = ElementStyles[card.element];
+  // Fallback to Nature if element is invalid to prevent crash
+  const Icon = ElementIcons[card.element as keyof typeof ElementIcons] || ElementIcons.Nature;
+  const style = ElementStyles[card.element as keyof typeof ElementStyles] || ElementStyles.Nature;
 
   return (
     <motion.div
@@ -100,6 +101,7 @@ export function Card({ card, className, onClick, isEnemy }: CardProps) {
           src={card.imageUrl}
           alt={card.name}
           fill
+          unoptimized
           className="object-cover transition-transform duration-700 group-hover:scale-110"
         />
         {/* Shine Effect */}
