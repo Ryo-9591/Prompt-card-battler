@@ -98,6 +98,10 @@ graph TD
 3.  依存関係をインストールします: `npm install`
 4.  開発サーバーを起動します: `npm run dev`
 
+## 本番デプロイ (Production Deployment)
+
+Railway 上に Ollama（テキスト生成モデル）を置き、Render に Next.js アプリを置く構成を推奨しています。詳細なセットアップ手順は `docs/deployment.md` を参照してください。
+
 ## ゲームルール
 
 - **属性相性**:
