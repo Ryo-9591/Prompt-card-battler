@@ -30,6 +30,7 @@ export default function BattlePage() {
   // Animation State
   const [attackingCardId, setAttackingCardId] = useState<string | null>(null);
   const [damagedCardId, setDamagedCardId] = useState<string | null>(null);
+  const [damageIndicators, setDamageIndicators] = useState<{id: string, cardId: string, damage: number}[]>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize Battle
@@ -118,9 +119,21 @@ export default function BattlePage() {
     // Logic
     const { attacker: newAttacker, defender: newDefender, logs: combatLogs } = resolveCombat(attacker, defender);
     
+    // Show Damage Indicators
+    const damageToDefender = defender.stats.health - newDefender.stats.health;
+    const damageToAttacker = attacker.stats.health - newAttacker.stats.health;
+
+    if (damageToDefender > 0) showDamage(defender.id, damageToDefender);
+    if (damageToAttacker > 0) showDamage(attacker.id, damageToAttacker);
+
     // Update Logs
     const newLogs = combatLogs.map(l => ({ ...l, turn }));
     setLogs(prev => [...prev, ...newLogs]);
+
+    // Remove old logs to keep it clean (optional, but good for "transient" feel)
+    if (logs.length > 5) {
+        setLogs(prev => prev.slice(prev.length - 5));
+    }
 
     // Update State
     if (isPlayerAttacking) {
@@ -132,6 +145,14 @@ export default function BattlePage() {
     }
   };
 
+  const showDamage = (cardId: string, damage: number) => {
+      const id = Math.random().toString(36).substr(2, 9);
+      setDamageIndicators(prev => [...prev, { id, cardId, damage }]);
+      setTimeout(() => {
+          setDamageIndicators(prev => prev.filter(i => i.id !== id));
+      }, 1000);
+  };
+
   const endTurn = () => {
     if (phase !== 'player' || winner) return;
     
@@ -141,190 +162,123 @@ export default function BattlePage() {
     // Reset Enemy Attacks (allow them to attack in their turn)
     setEnemyDeck(prev => prev.map(c => ({ ...c, canAttack: true })));
 
-    // AI Logic (Simple Delay)
+    // AI Logic
     setTimeout(() => {
-        executeEnemyTurn();
+        executeEnemyTurnRef();
     }, 1000);
   };
 
-  const executeEnemyTurn = () => {
-    // Simple AI: Each living enemy attacks a random living player card
-    // We need to do this sequentially for animations to make sense, or just one attack per turn for simplicity?
-    // Let's do one attack per enemy card that can attack.
+  const executeEnemyTurn = async () => {
+    // Sequential Attack Logic
+    // We need to fetch the latest state, but since we are in a closure, we can't easily.
+    // However, we can use a recursive approach or a loop with delays, reading the state from a ref if needed.
+    // But simplified: we will just assume the state doesn't change externally during the enemy turn.
+    // To do this properly in React without refs is hard.
+    // Let's use a "plan" approach: Calculate the sequence of attacks based on the INITIAL state of the turn,
+    // then execute them one by one.
     
-    // Note: Since state updates are async, we can't loop easily with state updates in React without complex effects or refs.
-    // For this MVP, let's just have ONE enemy attack per turn or make them all attack at once (logic wise) but animate fast.
-    // Better: Recursive function with delay.
-
-    let currentEnemyIndex = 0;
-    const enemyAttackSequence = async () => {
-        // We need to read the LATEST state. In a real app, use refs or functional state updates carefully.
-        // Here, we will cheat slightly by using a ref or just doing one attack for simplicity if multiple is too hard.
-        // Let's try to do one random attack for now to keep it stable.
-        
-        // Actually, let's just make the first available enemy attack a random target.
-        // To support multiple, we'd need a more robust queue system.
-        // Let's try to iterate over the deck in the state *at the start of the turn*? No, state changes.
-        
-        // Simplified AI: Pick ONE random attacker and ONE random target.
-        // If we want full board attacks, we need a better system. 
-        // Let's stick to: All enemies attack random targets one by one.
-        
-        // For this implementation, let's just have the AI attack ONCE with a random card to keep it simple and bug-free for now.
-        // If the user wants "Shadowverse", usually all followers can attack.
-        // Let's try to implement a sequence.
-        
-        // We will use a ref to track the current deck state during the AI turn to avoid closure staleness, 
-        // or just use functional updates.
-        
-        // Let's just do: Find all eligible attackers.
-        // For each, pick a target.
-        // Execute.
-        
-        // Since we can't easily chain state updates with delays in a loop without useEffect chains,
-        // let's just do one attack for now.
-        
-        setPlayerDeck(currentPDeck => {
-            setEnemyDeck(currentEDeck => {
-                // This is getting complex to orchestrate animations.
-                // Let's just do a single massive logic update for all AI attacks, 
-                // and maybe skip individual animations for AI or just animate the first one.
-                
-                // Let's go with: AI picks the strongest attacker and attacks the weakest player card.
-                const validAttackers = currentEDeck.filter(c => !c.isDead && c.canAttack);
-                if (validAttackers.length === 0) {
-                    finishEnemyTurn();
-                    return currentEDeck;
-                }
-
-                const attacker = validAttackers[0]; // Just first one for now
-                const validTargets = currentPDeck.filter(c => !c.isDead);
-                
-                if (validTargets.length > 0) {
-                    const target = validTargets[Math.floor(Math.random() * validTargets.length)];
-                    
-                    // Trigger animation (visual only, might be out of sync if we do multiple)
-                    setAttackingCardId(attacker.id);
-                    setDamagedCardId(target.id);
-                    setTimeout(() => {
-                        setAttackingCardId(null);
-                        setDamagedCardId(null);
-                    }, 800);
-
-                    const { attacker: newAttacker, defender: newDefender, logs: combatLogs } = resolveCombat(attacker, target);
-                    
-                    const newLogs = combatLogs.map(l => ({ ...l, turn }));
-                    setLogs(prev => [...prev, ...newLogs]);
-
-                    // Update Decks
-                    // We need to return the new Enemy Deck state here
-                    // And also update Player Deck state (which is in the outer scope)
-                    
-                    // This nested set state is tricky.
-                    // Let's use a helper to do the logic and update both at once.
-                    return currentEDeck.map(c => c.id === newAttacker.id ? { ...newAttacker, canAttack: false } : c);
-                } else {
-                    finishEnemyTurn();
-                    return currentEDeck;
-                }
-            });
-            
-            // We need to update player deck based on the combat result calculated inside setEnemyDeck... 
-            // This is why complex game logic in `useState` is hard.
-            // Let's refactor: Calculate everything first, then set state.
-            return currentPDeck; 
-        });
-        
-        return;
-    };
-
-    // Better AI Implementation
-    const performAiTurn = () => {
-        // Get current state
-        // Note: In a closure, these might be stale if we aren't careful.
-        // But since we call this from a timeout in endTurn, and we don't await anything before,
-        // the state *should* be relatively fresh, but `playerDeck` and `enemyDeck` are consts from the render.
-        // We need to use the functional update pattern to ensure we have the latest.
-        
-        setEnemyDeck(prevEnemyDeck => {
-            const attackers = prevEnemyDeck.filter(c => !c.isDead);
-            
-            if (attackers.length === 0) {
-                setTimeout(finishEnemyTurn, 500);
-                return prevEnemyDeck;
-            }
-
-            // We will execute attacks sequentially using a chain of timeouts/state updates?
-            // No, that's too messy.
-            // Let's just execute ONE attack for this turn to keep the flow clear.
-            // "The enemy rallies and one unit attacks!"
-            
-            const attacker = attackers[Math.floor(Math.random() * attackers.length)];
-            
-            setPlayerDeck(prevPlayerDeck => {
-                const targets = prevPlayerDeck.filter(c => !c.isDead);
-                if (targets.length === 0) {
-                    setTimeout(finishEnemyTurn, 500);
-                    return prevPlayerDeck;
-                }
-                
-                const target = targets[Math.floor(Math.random() * targets.length)];
-                
-                // Execute Combat Logic
-                const { attacker: newAttacker, defender: newDefender, logs: combatLogs } = resolveCombat(attacker, target);
-                
-                // Side effects (Logs, Animation)
-                const newLogs = combatLogs.map(l => ({ ...l, turn }));
-                setLogs(prev => [...prev, ...newLogs]);
-                
-                setAttackingCardId(attacker.id);
-                setTimeout(() => setAttackingCardId(null), 500);
-                setTimeout(() => {
-                    setDamagedCardId(target.id);
-                    setTimeout(() => setDamagedCardId(null), 500);
-                }, 300);
-
-                setTimeout(finishEnemyTurn, 1500);
-
-                // Return new Player Deck
-                return prevPlayerDeck.map(c => c.id === newDefender.id ? newDefender : c);
-            });
-
-            // Return new Enemy Deck
-            // We need to find the updated attacker in the list
-            // But `newAttacker` is derived inside the inner function... 
-            // This structure is still problematic.
-            
-            // CORRECT APPROACH:
-            // We need to access both decks. We can't easily do that with separate setStates if they depend on each other's result.
-            // But we can just read the current state from the refs if we had them, or just assume the render scope state is fresh enough 
-            // IF we haven't modified it since the render. 
-            // Since `endTurn` sets phase and then waits 1s, the component re-renders.
-            // So `playerDeck` and `enemyDeck` in `executeEnemyTurn` (if defined in component) ARE fresh.
-            
-            return prevEnemyDeck; // We will update it properly in the dedicated function below
-        });
-        
-        return []; // Dummy return for the first setEnemyDeck call if we used it, but we shouldn't.
-    };
+    // Actually, since damage happens, we need to update state.
+    // We will use a helper function that we call recursively or in a loop with await.
     
-    // Let's try the "Fresh State" approach
-    // Since we are inside the component, we can just read `playerDeck` and `enemyDeck`.
-    // BUT, we need to be careful about the closure.
-    // `executeEnemyTurn` is called from `setTimeout`. The `playerDeck` it sees is the one from the render where `setTimeout` was created.
-    // That should be fine as no other changes happen in between.
+    // We need to access the current decks.
+    // Since we can't await state updates, we have to chain them.
+    // Or we can use a ref to hold the "current simulation state" and sync it to React state.
     
-    const aiAttacker = enemyDeck.find(c => !c.isDead && c.canAttack);
-    if (aiAttacker) {
-        // Find Target
-        const targets = playerDeck.filter(c => !c.isDead);
-        if (targets.length > 0) {
-            const target = targets[Math.floor(Math.random() * targets.length)];
-            executeAttack(aiAttacker, target, false);
-        }
+    // Let's try a simpler approach:
+    // 1. Get list of attackers.
+    // 2. Loop through them with delay.
+    // 3. In each step, find a target (checking if it's still alive in the React state? No, React state update might not be flushed).
+    // This is the tricky part of React game loops.
+    
+    // Workaround: We will use a local variable for the "simulated" decks during the turn calculation if we want to do it all at once,
+    // but we want visual delays.
+    
+    // So we MUST use `setPlayerDeck` and `setEnemyDeck` with functional updates to ensure we are working on the latest state.
+    
+    const attackers = enemyDeck.filter(c => !c.isDead && c.canAttack);
+    
+    for (const attacker of attackers) {
+        // Check if attacker is still alive (it might have died from thorns/counter - not implemented yet but good practice)
+        // We need to check the LATEST state.
+        // We can't easily do that inside a simple loop without refs.
+        
+        // Let's just run one attack every 1.5 seconds.
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // We need to get the latest deck state here.
+        // We can't.
+        // So we will trigger a single "process next attack" effect? No.
+        
+        // Let's use the functional update pattern to "peek" or just rely on the fact that
+        // we are dispatching actions.
+        
+        // Actually, let's just use a ref to track the decks for the AI logic.
+        // But adding refs now is a bigger change.
+        
+        // Let's go with: AI plans the attacks at the start, but that might be invalid if a target dies.
+        // Simple fix: AI picks a random LIVING target at the moment of attack execution.
+        // But how to get living targets?
+        
+        // We will use a trick: `setState` callback allows us to access the state.
+        // But we can't "read" it out to the main scope.
+        
+        // Okay, let's just use `document.getElementById` or something? No.
+        // Let's use a ref. It's the cleanest way.
     }
     
-    setTimeout(finishEnemyTurn, 1500);
+    // Ref-less approach for this specific task:
+    // We will use a recursive function that takes the current decks as arguments?
+    // No, we need to update the UI.
+    
+    // Let's just implement a simple loop that assumes state updates are fast enough? No, they are batched.
+    
+    // Let's use a ref for `playerDeck` and `enemyDeck` just for the AI.
+    // I will add the refs in a separate edit or just assume I can add them now.
+    // I'll add them at the top.
+  };
+
+  // We need refs to access state inside async loops
+  const playerDeckRef = useRef(playerDeck);
+  const enemyDeckRef = useRef(enemyDeck);
+
+  useEffect(() => {
+      playerDeckRef.current = playerDeck;
+  }, [playerDeck]);
+
+  useEffect(() => {
+      enemyDeckRef.current = enemyDeck;
+  }, [enemyDeck]);
+
+  const executeEnemyTurnRef = async () => {
+      const attackers = enemyDeckRef.current.filter(c => !c.isDead);
+      
+      for (const attacker of attackers) {
+          // Re-check if attacker is alive (in case of counters)
+          const currentAttacker = enemyDeckRef.current.find(c => c.id === attacker.id);
+          if (!currentAttacker || currentAttacker.isDead || !currentAttacker.canAttack) continue;
+
+          // Find target
+          const targets = playerDeckRef.current.filter(c => !c.isDead);
+          if (targets.length === 0) break;
+
+          const target = targets[Math.floor(Math.random() * targets.length)];
+
+          // Execute Attack
+          // We can't call executeAttack directly because it relies on closure state for `setLogs` etc? 
+          // `executeAttack` uses `setPlayerDeck` etc, which is fine.
+          // But it uses `resolveCombat` which is pure.
+          
+          // We need to manually call the logic to ensure we update the refs immediately for the next iteration?
+          // No, `setPlayerDeck` will trigger a render, updating the ref via useEffect.
+          // So we just need to wait enough time for the render to happen.
+          
+          executeAttack(currentAttacker, target, false);
+          
+          // Wait for animation and state update
+          await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+      
+      finishEnemyTurn();
   };
 
   const finishEnemyTurn = () => {
@@ -385,9 +339,9 @@ export default function BattlePage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 flex-1 overflow-hidden">
+      <div className="relative w-full h-full flex-1 overflow-hidden">
         {/* Battle Visuals */}
-        <div className="lg:col-span-2 flex flex-col justify-between space-y-4 bg-slate-950/40 p-8 rounded-xl border border-[#c5a000]/20 relative overflow-hidden backdrop-blur-sm">
+        <div className="w-full h-full flex flex-col justify-between space-y-4 bg-slate-950/40 p-8 rounded-xl border border-[#c5a000]/20 relative overflow-hidden backdrop-blur-sm">
           {/* Background Decor */}
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-900/50 via-slate-950/80 to-slate-950 pointer-events-none" />
           
@@ -426,6 +380,22 @@ export default function BattlePage() {
                             {card.stats.health}/{card.originalStats.health}
                         </span>
                      </div>
+                     {/* Damage Indicator */}
+                     <AnimatePresence>
+                        {damageIndicators.filter(d => d.cardId === card.id).map(d => (
+                            <motion.div
+                                key={d.id}
+                                initial={{ opacity: 1, y: 0, scale: 0.5 }}
+                                animate={{ opacity: 0, y: -50, scale: 1.5 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
+                            >
+                                <span className="text-4xl font-black text-red-500 drop-shadow-[0_2px_2px_rgba(0,0,0,1)] stroke-white">
+                                    -{d.damage}
+                                </span>
+                            </motion.div>
+                        ))}
+                     </AnimatePresence>
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -481,6 +451,22 @@ export default function BattlePage() {
                             <Swords size={12} />
                         </div>
                      )}
+                     {/* Damage Indicator */}
+                     <AnimatePresence>
+                        {damageIndicators.filter(d => d.cardId === card.id).map(d => (
+                            <motion.div
+                                key={d.id}
+                                initial={{ opacity: 1, y: 0, scale: 0.5 }}
+                                animate={{ opacity: 0, y: -50, scale: 1.5 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none"
+                            >
+                                <span className="text-4xl font-black text-red-500 drop-shadow-[0_2px_2px_rgba(0,0,0,1)] stroke-white">
+                                    -{d.damage}
+                                </span>
+                            </motion.div>
+                        ))}
+                     </AnimatePresence>
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -544,34 +530,33 @@ export default function BattlePage() {
           )}
         </div>
 
-        {/* Battle Log */}
-        <div className="bg-black/60 border border-[#c5a000]/30 rounded-xl p-0 flex flex-col h-full overflow-hidden shadow-2xl backdrop-blur-md">
-          <div className="p-4 border-b border-[#c5a000]/20 bg-[#c5a000]/5">
-            <h2 className="text-xl font-serif font-bold text-[#f0e6d2] flex items-center gap-2">
-                <span className="text-[#ffd700]">📜</span> バトルログ
-            </h2>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 font-mono text-sm scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent">
-            {logs.map((log, i) => (
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                key={i} 
-                className={`p-3 rounded-lg border-l-4 shadow-sm ${
-                  log.type === 'victory' ? 'bg-green-950/30 border-green-500 text-green-200' :
-                  log.type === 'defeat' ? 'bg-red-950/30 border-red-500 text-red-200' :
-                  log.type === 'attack' ? 'bg-slate-800/50 border-slate-500 text-slate-300' :
-                  'text-slate-400 border-transparent'
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] uppercase tracking-wider opacity-50 bg-black/30 px-1.5 rounded">Turn {log.turn}</span>
-                </div>
-                {log.message}
-              </motion.div>
-            ))}
-            <div ref={logsEndRef} />
-          </div>
+        {/* Floating Battle Log Overlay */}
+        <div className="absolute top-4 right-4 z-40 w-80 pointer-events-none">
+            <div className="flex flex-col gap-2 items-end">
+                <AnimatePresence>
+                    {logs.slice(-5).map((log, i) => (
+                        <motion.div
+                            key={`${log.turn}-${i}`} // Use index to ensure uniqueness if turn is same
+                            initial={{ opacity: 0, x: 20, height: 0 }}
+                            animate={{ opacity: 1, x: 0, height: 'auto' }}
+                            exit={{ opacity: 0, x: 20, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className={`
+                                pointer-events-auto
+                                px-4 py-2 rounded-lg shadow-lg border-l-4 text-sm font-mono max-w-full break-words
+                                ${
+                                  log.type === 'victory' ? 'bg-green-900/90 border-green-500 text-green-100' :
+                                  log.type === 'defeat' ? 'bg-red-900/90 border-red-500 text-red-100' :
+                                  log.type === 'attack' ? 'bg-slate-800/90 border-slate-500 text-slate-200' :
+                                  'bg-black/80 border-slate-600 text-slate-300'
+                                }
+                            `}
+                        >
+                            {log.message}
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
+            </div>
         </div>
       </div>
     </div>
