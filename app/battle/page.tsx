@@ -104,6 +104,11 @@ export default function BattlePage() {
 
       executeAttack(attacker, card, true);
       setSelectedCardId(null);
+      
+      // Auto-end turn after one attack
+      setTimeout(() => {
+          endTurn();
+      }, 1000); // Wait for animation
     }
   };
 
@@ -250,32 +255,24 @@ export default function BattlePage() {
   }, [enemyDeck]);
 
   const executeEnemyTurnRef = async () => {
-      const attackers = enemyDeckRef.current.filter(c => !c.isDead);
+      const attackers = enemyDeckRef.current.filter(c => !c.isDead && c.canAttack);
       
-      for (const attacker of attackers) {
-          // Re-check if attacker is alive (in case of counters)
-          const currentAttacker = enemyDeckRef.current.find(c => c.id === attacker.id);
-          if (!currentAttacker || currentAttacker.isDead || !currentAttacker.canAttack) continue;
+      if (attackers.length > 0) {
+          // Select one random attacker
+          const attacker = attackers[Math.floor(Math.random() * attackers.length)];
 
           // Find target
           const targets = playerDeckRef.current.filter(c => !c.isDead);
-          if (targets.length === 0) break;
+          
+          if (targets.length > 0) {
+              const target = targets[Math.floor(Math.random() * targets.length)];
 
-          const target = targets[Math.floor(Math.random() * targets.length)];
-
-          // Execute Attack
-          // We can't call executeAttack directly because it relies on closure state for `setLogs` etc? 
-          // `executeAttack` uses `setPlayerDeck` etc, which is fine.
-          // But it uses `resolveCombat` which is pure.
-          
-          // We need to manually call the logic to ensure we update the refs immediately for the next iteration?
-          // No, `setPlayerDeck` will trigger a render, updating the ref via useEffect.
-          // So we just need to wait enough time for the render to happen.
-          
-          executeAttack(currentAttacker, target, false);
-          
-          // Wait for animation and state update
-          await new Promise(resolve => setTimeout(resolve, 1500));
+              // Execute Attack
+              executeAttack(attacker, target, false);
+              
+              // Wait for animation
+              await new Promise(resolve => setTimeout(resolve, 1500));
+          }
       }
       
       finishEnemyTurn();
@@ -324,7 +321,7 @@ export default function BattlePage() {
                         onClick={endTurn} 
                         className="bg-blue-700 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg border border-blue-500 flex items-center gap-2 shadow-lg"
                     >
-                        ターン終了 <ArrowRight size={18} />
+                        パス <ArrowRight size={18} />
                     </motion.button>
                  )}
                 <motion.button 
