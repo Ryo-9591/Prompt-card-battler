@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { Card as CardComponent } from "@/components/Card";
 import { 
-  Card, 
   BattleCard, 
   BattleLogEntry, 
-  MOCK_ENEMY_DECK, 
+  DUNGEONS,
+  Dungeon,
   initializeBattleDeck, 
   resolveCombat 
 } from "@/lib/game-logic";
@@ -23,6 +23,7 @@ export default function BattlePage() {
   const [phase, setPhase] = useState<'player' | 'enemy'>('player');
   const [winner, setWinner] = useState<'player' | 'enemy' | null>(null);
   const [battleStarted, setBattleStarted] = useState(false);
+  const [selectedDungeon, setSelectedDungeon] = useState<Dungeon | null>(null);
 
   // Interaction State
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
@@ -41,7 +42,20 @@ export default function BattlePage() {
       return;
     }
     setPlayerDeck(initializeBattleDeck(pDeck));
-    setEnemyDeck(initializeBattleDeck(MOCK_ENEMY_DECK));
+    if (!selectedDungeon) return;
+
+    setPlayerDeck(initializeBattleDeck(pDeck));
+    
+    // Generate Enemy Deck from Dungeon Pool
+    const pool = selectedDungeon.enemyPool;
+    const enemyCards = [];
+    for (let i = 0; i < 5; i++) {
+        enemyCards.push(pool[Math.floor(Math.random() * pool.length)]);
+    }
+    // Assign unique IDs to avoid key conflicts if same card selected multiple times
+    const uniqueEnemyCards = enemyCards.map((c, i) => ({ ...c, id: `enemy-${i}-${c.id}` }));
+
+    setEnemyDeck(initializeBattleDeck(uniqueEnemyCards));
     setLogs([{ turn: 1, message: "バトル開始！あなたのターンです。", type: 'info' }]);
     setTurn(1);
     setPhase('player');
@@ -56,6 +70,7 @@ export default function BattlePage() {
     setWinner(null);
     setPlayerDeck([]);
     setEnemyDeck([]);
+    setSelectedDungeon(null);
   };
 
   // Scroll logs
@@ -304,14 +319,47 @@ export default function BattlePage() {
         )}
 
         {!battleStarted ? (
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={startBattle} 
-            className="bg-gradient-to-r from-red-700 to-red-900 hover:from-red-600 hover:to-red-800 text-[#ffd700] font-bold py-3 px-8 rounded-lg shadow-[0_0_15px_rgba(220,38,38,0.5)] border border-red-500 flex items-center gap-3 text-xl"
-          >
-            <Swords size={24} /> バトル開始
-          </motion.button>
+          !selectedDungeon ? (
+            <div className="flex gap-4">
+                {DUNGEONS.map(dungeon => (
+                    <motion.button
+                        key={dungeon.id}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setSelectedDungeon(dungeon)}
+                        className={`
+                            p-6 rounded-xl border-2 text-left transition-all w-64
+                            ${dungeon.difficulty === 'Beginner' ? 'bg-green-900/40 border-green-500 hover:bg-green-900/60' : ''}
+                            ${dungeon.difficulty === 'Intermediate' ? 'bg-orange-900/40 border-orange-500 hover:bg-orange-900/60' : ''}
+                            ${dungeon.difficulty === 'Advanced' ? 'bg-purple-900/40 border-purple-500 hover:bg-purple-900/60' : ''}
+                        `}
+                    >
+                        <div className="text-sm font-bold mb-1 opacity-80" style={{ color: dungeon.difficulty === 'Beginner' ? '#86efac' : dungeon.difficulty === 'Intermediate' ? '#fdba74' : '#d8b4fe' }}>
+                            {dungeon.difficulty.toUpperCase()}
+                        </div>
+                        <div className="text-xl font-bold text-white mb-2">{dungeon.name}</div>
+                        <div className="text-xs text-slate-300">{dungeon.description}</div>
+                    </motion.button>
+                ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-4">
+                 <div className="text-xl text-white font-bold">
+                    挑戦中: <span className="text-[#ffd700]">{selectedDungeon.name}</span>
+                 </div>
+                 <motion.button 
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={startBattle} 
+                    className="bg-gradient-to-r from-red-700 to-red-900 hover:from-red-600 hover:to-red-800 text-[#ffd700] font-bold py-3 px-8 rounded-lg shadow-[0_0_15px_rgba(220,38,38,0.5)] border border-red-500 flex items-center gap-3 text-xl"
+                >
+                    <Swords size={24} /> バトル開始
+                </motion.button>
+                <button onClick={() => setSelectedDungeon(null)} className="text-slate-400 hover:text-white underline">
+                    戻る
+                </button>
+            </div>
+          )
         ) : (
             <div className="flex gap-4">
                  {phase === 'player' && !winner && (

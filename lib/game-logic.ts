@@ -1,3 +1,4 @@
+
 export type ElementType = 'Fire' | 'Water' | 'Nature' | 'Light' | 'Dark';
 export type KeywordType = 'Rush' | 'Guard' | 'Combo' | 'Revenge' | 'Pierce';
 
@@ -19,6 +20,15 @@ export interface Deck {
   id: string;
   name: string;
   cards: Card[];
+}
+
+export interface Dungeon {
+  id: string;
+  name: string;
+  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  description: string;
+  enemyPool: Card[];
+  boss?: Card;
 }
 
 export const ELEMENT_ADVANTAGE: Record<ElementType, ElementType> = {
@@ -49,9 +59,7 @@ export function initializeBattleDeck(deck: Card[]): BattleCard[] {
     ...card,
     stats: { ...card.stats }, // Clone stats
     originalStats: { ...card.stats },
-    canAttack: true, // In this game, maybe cards can attack immediately? Or wait a turn? Let's say wait a turn usually, but for simplicity let's allow immediate attack or handle "summoning sickness" later. The requirement didn't specify. Shadowverse has summoning sickness (except Rush). Let's assume they are already on board for this MVP or can attack immediately for simplicity unless "Rush" keyword is present. 
-    // Wait, the prompt says "Shadowverse-like". In Shadowverse, followers can't attack face turn 1, but can attack followers if they have Rush.
-    // Since we don't have a "hand" and "play" phase, all cards start on board. So they should be able to attack immediately.
+    canAttack: true, 
     isDead: false,
   }));
 }
@@ -82,7 +90,7 @@ export function resolveCombat(attacker: BattleCard, defender: BattleCard): {
   const turnLogs: BattleLogEntry[] = [];
   const { attackerDamage, defenderDamage, logs: damageLogs } = calculateDamage(attacker, defender);
 
-  damageLogs.forEach(msg => turnLogs.push({ turn: 0, message: msg, type: 'info' })); // Turn 0 placeholder, will be overridden or ignored in UI display context if needed, or we pass turn number.
+  damageLogs.forEach(msg => turnLogs.push({ turn: 0, message: msg, type: 'info' }));
 
   // Apply Damage
   attacker.stats.health -= defenderDamage;
@@ -106,55 +114,87 @@ export function resolveCombat(attacker: BattleCard, defender: BattleCard): {
   return { attacker, defender, logs: turnLogs };
 }
 
-export const MOCK_ENEMY_DECK: Card[] = [
-  {
-    id: 'e1',
-    name: 'ゴブリンの歩兵',
-    stats: { attack: 2, health: 2 },
-    element: 'Nature',
-    keywords: [],
-    cost: 1,
-    explanation: '安価な捨て駒。',
-    imageUrl: 'https://image.pollinations.ai/prompt/Fantasy%20card%20art%2C%20Nature%20element%2C%20Goblin%20Infantry%3A%20Cheap%20fodder.%20High%20quality%2C%20digital%20art%2C%20magical%20atmosphere.?width=1024&height=1024&seed=101&nologo=true&model=flux',
-  },
-  {
-    id: 'e2',
-    name: 'ファイア・インプ',
-    stats: { attack: 4, health: 1 },
-    element: 'Fire',
-    keywords: ['Rush'],
-    cost: 2,
-    explanation: '燃え尽きるのは早い。',
-    imageUrl: 'https://image.pollinations.ai/prompt/Fantasy%20card%20art%2C%20Fire%20element%2C%20Fire%20Imp%3A%20Burns%20out%20quickly.%20High%20quality%2C%20digital%20art%2C%20magical%20atmosphere.?width=1024&height=1024&seed=102&nologo=true&model=flux',
-  },
-  {
-    id: 'e3',
-    name: 'ウォーター・エレメンタル',
-    stats: { attack: 3, health: 5 },
-    element: 'Water',
-    keywords: [],
-    cost: 4,
-    explanation: 'しぶとい。',
-    imageUrl: 'https://image.pollinations.ai/prompt/Fantasy%20card%20art%2C%20Water%20element%2C%20Water%20Elemental%3A%20Resilient.%20High%20quality%2C%20digital%20art%2C%20magical%20atmosphere.?width=1024&height=1024&seed=103&nologo=true&model=flux',
-  },
-  {
-    id: 'e4',
-    name: 'シャドウ・ナイト',
-    stats: { attack: 6, health: 4 },
-    element: 'Dark',
-    keywords: [],
-    cost: 6,
-    explanation: '一撃が重い。',
-    imageUrl: 'https://image.pollinations.ai/prompt/Fantasy%20card%20art%2C%20Dark%20element%2C%20Shadow%20Knight%3A%20Heavy%20hitter.%20High%20quality%2C%20digital%20art%2C%20magical%20atmosphere.?width=1024&height=1024&seed=104&nologo=true&model=flux',
-  },
-  {
-    id: 'e5',
-    name: 'ドラゴン・ロード',
-    stats: { attack: 8, health: 8 },
-    element: 'Fire',
-    keywords: [],
-    cost: 9,
-    explanation: '最強の主。',
-    imageUrl: 'https://image.pollinations.ai/prompt/Fantasy%20card%20art%2C%20Fire%20element%2C%20Dragon%20Lord%3A%20The%20strongest%20lord.%20High%20quality%2C%20digital%20art%2C%20magical%20atmosphere.?width=1024&height=1024&seed=105&nologo=true&model=flux',
-  },
+// --- Enemy Data ---
+
+const BEGINNER_ENEMIES: Card[] = [
+    {
+        id: 'b1', name: 'ゴブリン', stats: { attack: 2, health: 3 }, element: 'Nature', keywords: [], cost: 1,
+        explanation: '森に住む小鬼。', imageUrl: 'https://image.pollinations.ai/prompt/fantasy%20card%20art%20goblin%20forest?width=512&height=768&nologo=true'
+    },
+    {
+        id: 'b2', name: 'スライム', stats: { attack: 1, health: 4 }, element: 'Water', keywords: [], cost: 1,
+        explanation: 'ぷるぷるしている。', imageUrl: 'https://image.pollinations.ai/prompt/fantasy%20card%20art%20blue%20slime?width=512&height=768&nologo=true'
+    },
+    {
+        id: 'b3', name: 'ウルフ', stats: { attack: 3, health: 2 }, element: 'Nature', keywords: [], cost: 2,
+        explanation: '素早い動きで噛みつく。', imageUrl: 'https://image.pollinations.ai/prompt/fantasy%20card%20art%20wolf%20forest?width=512&height=768&nologo=true'
+    },
+    {
+        id: 'b4', name: 'フェアリー', stats: { attack: 2, health: 2 }, element: 'Light', keywords: [], cost: 2,
+        explanation: '光の魔法を使う。', imageUrl: 'https://image.pollinations.ai/prompt/fantasy%20card%20art%20fairy%20light?width=512&height=768&nologo=true'
+    },
 ];
+
+const INTERMEDIATE_ENEMIES: Card[] = [
+    {
+        id: 'i1', name: 'ファイア・インプ', stats: { attack: 4, health: 2 }, element: 'Fire', keywords: ['Rush'], cost: 3,
+        explanation: '燃え盛る小悪魔。', imageUrl: 'https://image.pollinations.ai/prompt/fantasy%20card%20art%20fire%20imp?width=512&height=768&nologo=true'
+    },
+    {
+        id: 'i2', name: 'リザードマン', stats: { attack: 3, health: 5 }, element: 'Fire', keywords: [], cost: 3,
+        explanation: '鱗が硬い戦士。', imageUrl: 'https://image.pollinations.ai/prompt/fantasy%20card%20art%20lizardman%20warrior?width=512&height=768&nologo=true'
+    },
+    {
+        id: 'i3', name: 'マグマゴーレム', stats: { attack: 2, health: 7 }, element: 'Fire', keywords: ['Guard'], cost: 4,
+        explanation: '溶岩でできた巨人。', imageUrl: 'https://image.pollinations.ai/prompt/fantasy%20card%20art%20magma%20golem?width=512&height=768&nologo=true'
+    },
+    {
+        id: 'i4', name: 'サラマンダー', stats: { attack: 5, health: 3 }, element: 'Fire', keywords: [], cost: 4,
+        explanation: '炎を纏うトカゲ。', imageUrl: 'https://image.pollinations.ai/prompt/fantasy%20card%20art%20fire%20salamander?width=512&height=768&nologo=true'
+    },
+];
+
+const ADVANCED_ENEMIES: Card[] = [
+    {
+        id: 'a1', name: 'シャドウナイト', stats: { attack: 6, health: 6 }, element: 'Dark', keywords: [], cost: 5,
+        explanation: '闇に堕ちた騎士。', imageUrl: 'https://image.pollinations.ai/prompt/fantasy%20card%20art%20dark%20knight?width=512&height=768&nologo=true'
+    },
+    {
+        id: 'a2', name: 'アークデーモン', stats: { attack: 7, health: 5 }, element: 'Dark', keywords: [], cost: 6,
+        explanation: '上位の悪魔。', imageUrl: 'https://image.pollinations.ai/prompt/fantasy%20card%20art%20archdemon?width=512&height=768&nologo=true'
+    },
+    {
+        id: 'a3', name: 'カオスドラゴン', stats: { attack: 9, health: 8 }, element: 'Dark', keywords: [], cost: 8,
+        explanation: '混沌を呼ぶ竜。', imageUrl: 'https://image.pollinations.ai/prompt/fantasy%20card%20art%20chaos%20dragon?width=512&height=768&nologo=true'
+    },
+    {
+        id: 'a4', name: 'ヴァンパイアロード', stats: { attack: 5, health: 10 }, element: 'Dark', keywords: ['Revenge'], cost: 7,
+        explanation: '血を求める貴族。', imageUrl: 'https://image.pollinations.ai/prompt/fantasy%20card%20art%20vampire%20lord?width=512&height=768&nologo=true'
+    },
+];
+
+export const DUNGEONS: Dungeon[] = [
+    {
+        id: 'd1',
+        name: 'はじまりの森',
+        difficulty: 'Beginner',
+        description: 'モンスターが現れ始めた森。初心者向け。',
+        enemyPool: BEGINNER_ENEMIES
+    },
+    {
+        id: 'd2',
+        name: '灼熱の火山',
+        difficulty: 'Intermediate',
+        description: '強力な炎属性モンスターが生息する危険地帯。',
+        enemyPool: INTERMEDIATE_ENEMIES
+    },
+    {
+        id: 'd3',
+        name: '深淵の魔城',
+        difficulty: 'Advanced',
+        description: '最凶の魔物が巣食う城。生きて帰った者はいない。',
+        enemyPool: ADVANCED_ENEMIES
+    }
+];
+
+export const MOCK_ENEMY_DECK = BEGINNER_ENEMIES; // Fallback
