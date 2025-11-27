@@ -22,14 +22,8 @@ export interface Deck {
   cards: Card[];
 }
 
-export interface Dungeon {
-  id: string;
-  name: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  description: string;
-  enemyPool: Card[];
-  boss?: Card;
-}
+// Old Dungeon interface removed
+
 
 export const ELEMENT_ADVANTAGE: Record<ElementType, ElementType> = {
   Fire: 'Nature',
@@ -173,28 +167,61 @@ const ADVANCED_ENEMIES: Card[] = [
     },
 ];
 
-export const DUNGEONS: Dungeon[] = [
+export interface DungeonLevel {
+  id: string;
+  name: string; // "初級", "中級", "上級"
+  difficultyMultiplier: number;
+  recommendedLevel: number;
+}
+
+export interface DungeonArea {
+  id: string;
+  name: string;
+  description: string;
+  enemyPool: Card[];
+  levels: DungeonLevel[];
+  backgroundImage?: string; // Optional for future use
+}
+
+// Re-export for backward compatibility if needed, but we will update usage
+export type Dungeon = DungeonArea; 
+
+export const DUNGEON_AREAS: DungeonArea[] = [
     {
-        id: 'd1',
+        id: 'area1',
         name: 'はじまりの森',
-        difficulty: 'Beginner',
-        description: 'モンスターが現れ始めた森。初心者向け。',
-        enemyPool: BEGINNER_ENEMIES
+        description: 'モンスターが現れ始めた森。',
+        enemyPool: BEGINNER_ENEMIES,
+        levels: [
+            { id: 'area1_1', name: '初級', difficultyMultiplier: 1.0, recommendedLevel: 1 },
+            { id: 'area1_2', name: '中級', difficultyMultiplier: 1.5, recommendedLevel: 5 },
+            { id: 'area1_3', name: '上級', difficultyMultiplier: 2.0, recommendedLevel: 10 },
+        ]
     },
     {
-        id: 'd2',
+        id: 'area2',
         name: '灼熱の火山',
-        difficulty: 'Intermediate',
         description: '強力な炎属性モンスターが生息する危険地帯。',
-        enemyPool: INTERMEDIATE_ENEMIES
+        enemyPool: INTERMEDIATE_ENEMIES,
+        levels: [
+            { id: 'area2_1', name: '初級', difficultyMultiplier: 0.8, recommendedLevel: 15 },
+            { id: 'area2_2', name: '中級', difficultyMultiplier: 1.0, recommendedLevel: 20 },
+            { id: 'area2_3', name: '上級', difficultyMultiplier: 1.3, recommendedLevel: 25 },
+        ]
     },
     {
-        id: 'd3',
+        id: 'area3',
         name: '深淵の魔城',
-        difficulty: 'Advanced',
-        description: '最凶の魔物が巣食う城。生きて帰った者はいない。',
-        enemyPool: ADVANCED_ENEMIES
+        description: '最凶の魔物が巣食う城。',
+        enemyPool: ADVANCED_ENEMIES,
+        levels: [
+            { id: 'area3_1', name: '初級', difficultyMultiplier: 0.7, recommendedLevel: 30 },
+            { id: 'area3_2', name: '中級', difficultyMultiplier: 1.0, recommendedLevel: 40 },
+            { id: 'area3_3', name: '上級', difficultyMultiplier: 1.5, recommendedLevel: 50 },
+        ]
     }
 ];
 
-export const MOCK_ENEMY_DECK = BEGINNER_ENEMIES; // Fallback
+// Keep for backward compatibility during refactor if needed, but we should switch to DUNGEON_AREAS
+export const DUNGEONS = DUNGEON_AREAS; 
+export const MOCK_ENEMY_DECK = BEGINNER_ENEMIES;

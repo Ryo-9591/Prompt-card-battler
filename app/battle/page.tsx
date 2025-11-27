@@ -5,13 +5,14 @@ import { Card as CardComponent } from "@/components/Card";
 import { 
   BattleCard, 
   BattleLogEntry, 
-  DUNGEONS,
-  Dungeon,
+  DUNGEON_AREAS,
+  DungeonArea,
+  DungeonLevel,
   initializeBattleDeck, 
   resolveCombat 
 } from "@/lib/game-logic";
 import { storage } from "@/lib/storage";
-import { Swords, RotateCcw, Shield, Skull, ArrowRight } from "lucide-react";
+import { Swords, RotateCcw, Shield, Skull, ArrowRight, ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function BattlePage() {
@@ -23,7 +24,10 @@ export default function BattlePage() {
   const [phase, setPhase] = useState<'player' | 'enemy'>('player');
   const [winner, setWinner] = useState<'player' | 'enemy' | null>(null);
   const [battleStarted, setBattleStarted] = useState(false);
-  const [selectedDungeon, setSelectedDungeon] = useState<Dungeon | null>(null);
+  
+  // Dungeon Selection State
+  const [selectedArea, setSelectedArea] = useState<DungeonArea | null>(null);
+  const [selectedLevel, setSelectedLevel] = useState<DungeonLevel | null>(null);
 
   // Interaction State
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
@@ -35,28 +39,40 @@ export default function BattlePage() {
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize Battle
-  const startBattle = () => {
+  const startBattle = (level: DungeonLevel) => {
+    if (!selectedArea) return;
+    
     const pDeck = storage.getDeck();
     if (pDeck.length === 0) {
       alert("デッキがありません！デッキビルダーで作成してください。");
       return;
     }
-    setPlayerDeck(initializeBattleDeck(pDeck));
-    if (!selectedDungeon) return;
 
+    setSelectedLevel(level);
     setPlayerDeck(initializeBattleDeck(pDeck));
     
-    // Generate Enemy Deck from Dungeon Pool
-    const pool = selectedDungeon.enemyPool;
+    // Generate Enemy Deck from Dungeon Pool with Difficulty Scaling
+    const pool = selectedArea.enemyPool;
+    const multiplier = level.difficultyMultiplier;
+    
     const enemyCards = [];
     for (let i = 0; i < 5; i++) {
-        enemyCards.push(pool[Math.floor(Math.random() * pool.length)]);
+        const baseCard = pool[Math.floor(Math.random() * pool.length)];
+        // Apply multiplier to stats
+        const scaledCard = {
+            ...baseCard,
+            stats: {
+                attack: Math.ceil(baseCard.stats.attack * multiplier),
+                health: Math.ceil(baseCard.stats.health * multiplier)
+            }
+        };
+        enemyCards.push(scaledCard);
     }
     // Assign unique IDs to avoid key conflicts if same card selected multiple times
     const uniqueEnemyCards = enemyCards.map((c, i) => ({ ...c, id: `enemy-${i}-${c.id}` }));
 
     setEnemyDeck(initializeBattleDeck(uniqueEnemyCards));
-    setLogs([{ turn: 1, message: "バトル開始！あなたのターンです。", type: 'info' }]);
+    setLogs([{ turn: 1, message: `バトル開始！ ${selectedArea.name} - ${level.name}`, type: 'info' }]);
     setTurn(1);
     setPhase('player');
     setWinner(null);
@@ -70,7 +86,11 @@ export default function BattlePage() {
     setWinner(null);
     setPlayerDeck([]);
     setEnemyDeck([]);
-    setSelectedDungeon(null);
+    // Keep selectedArea but clear selectedLevel to return to level selection? 
+    // Or clear everything to return to area selection?
+    // Let's clear everything for a fresh start.
+    setSelectedArea(null);
+    setSelectedLevel(null);
   };
 
   // Scroll logs
@@ -189,72 +209,7 @@ export default function BattlePage() {
   };
 
   const executeEnemyTurn = async () => {
-    // Sequential Attack Logic
-    // We need to fetch the latest state, but since we are in a closure, we can't easily.
-    // However, we can use a recursive approach or a loop with delays, reading the state from a ref if needed.
-    // But simplified: we will just assume the state doesn't change externally during the enemy turn.
-    // To do this properly in React without refs is hard.
-    // Let's use a "plan" approach: Calculate the sequence of attacks based on the INITIAL state of the turn,
-    // then execute them one by one.
-    
-    // Actually, since damage happens, we need to update state.
-    // We will use a helper function that we call recursively or in a loop with await.
-    
-    // We need to access the current decks.
-    // Since we can't await state updates, we have to chain them.
-    // Or we can use a ref to hold the "current simulation state" and sync it to React state.
-    
-    // Let's try a simpler approach:
-    // 1. Get list of attackers.
-    // 2. Loop through them with delay.
-    // 3. In each step, find a target (checking if it's still alive in the React state? No, React state update might not be flushed).
-    // This is the tricky part of React game loops.
-    
-    // Workaround: We will use a local variable for the "simulated" decks during the turn calculation if we want to do it all at once,
-    // but we want visual delays.
-    
-    // So we MUST use `setPlayerDeck` and `setEnemyDeck` with functional updates to ensure we are working on the latest state.
-    
-    const attackers = enemyDeck.filter(c => !c.isDead && c.canAttack);
-    
-    for (const attacker of attackers) {
-        // Check if attacker is still alive (it might have died from thorns/counter - not implemented yet but good practice)
-        // We need to check the LATEST state.
-        // We can't easily do that inside a simple loop without refs.
-        
-        // Let's just run one attack every 1.5 seconds.
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // We need to get the latest deck state here.
-        // We can't.
-        // So we will trigger a single "process next attack" effect? No.
-        
-        // Let's use the functional update pattern to "peek" or just rely on the fact that
-        // we are dispatching actions.
-        
-        // Actually, let's just use a ref to track the decks for the AI logic.
-        // But adding refs now is a bigger change.
-        
-        // Let's go with: AI plans the attacks at the start, but that might be invalid if a target dies.
-        // Simple fix: AI picks a random LIVING target at the moment of attack execution.
-        // But how to get living targets?
-        
-        // We will use a trick: `setState` callback allows us to access the state.
-        // But we can't "read" it out to the main scope.
-        
-        // Okay, let's just use `document.getElementById` or something? No.
-        // Let's use a ref. It's the cleanest way.
-    }
-    
-    // Ref-less approach for this specific task:
-    // We will use a recursive function that takes the current decks as arguments?
-    // No, we need to update the UI.
-    
-    // Let's just implement a simple loop that assumes state updates are fast enough? No, they are batched.
-    
-    // Let's use a ref for `playerDeck` and `enemyDeck` just for the AI.
-    // I will add the refs in a separate edit or just assume I can add them now.
-    // I'll add them at the top.
+    // This function is kept for reference but logic is in executeEnemyTurnRef
   };
 
   // We need refs to access state inside async loops
@@ -319,44 +274,59 @@ export default function BattlePage() {
         )}
 
         {!battleStarted ? (
-          !selectedDungeon ? (
+          !selectedArea ? (
+            // Step 1: Select Area
             <div className="flex gap-4">
-                {DUNGEONS.map(dungeon => (
+                {DUNGEON_AREAS.map(area => (
                     <motion.button
-                        key={dungeon.id}
+                        key={area.id}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        onClick={() => setSelectedDungeon(dungeon)}
+                        onClick={() => setSelectedArea(area)}
                         className={`
                             p-6 rounded-xl border-2 text-left transition-all w-64
-                            ${dungeon.difficulty === 'Beginner' ? 'bg-green-900/40 border-green-500 hover:bg-green-900/60' : ''}
-                            ${dungeon.difficulty === 'Intermediate' ? 'bg-orange-900/40 border-orange-500 hover:bg-orange-900/60' : ''}
-                            ${dungeon.difficulty === 'Advanced' ? 'bg-purple-900/40 border-purple-500 hover:bg-purple-900/60' : ''}
+                            bg-slate-900/60 border-slate-600 hover:bg-slate-800 hover:border-[#ffd700]
                         `}
                     >
-                        <div className="text-sm font-bold mb-1 opacity-80" style={{ color: dungeon.difficulty === 'Beginner' ? '#86efac' : dungeon.difficulty === 'Intermediate' ? '#fdba74' : '#d8b4fe' }}>
-                            {dungeon.difficulty.toUpperCase()}
-                        </div>
-                        <div className="text-xl font-bold text-white mb-2">{dungeon.name}</div>
-                        <div className="text-xs text-slate-300">{dungeon.description}</div>
+                        <div className="text-xl font-bold text-white mb-2">{area.name}</div>
+                        <div className="text-xs text-slate-300">{area.description}</div>
                     </motion.button>
                 ))}
             </div>
           ) : (
+            // Step 2: Select Level
             <div className="flex items-center gap-4">
-                 <div className="text-xl text-white font-bold">
-                    挑戦中: <span className="text-[#ffd700]">{selectedDungeon.name}</span>
+                 <div className="flex flex-col items-end">
+                    <div className="text-sm text-slate-400">エリア選択中</div>
+                    <div className="text-xl text-[#ffd700] font-bold">{selectedArea.name}</div>
                  </div>
-                 <motion.button 
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={startBattle} 
-                    className="bg-gradient-to-r from-red-700 to-red-900 hover:from-red-600 hover:to-red-800 text-[#ffd700] font-bold py-3 px-8 rounded-lg shadow-[0_0_15px_rgba(220,38,38,0.5)] border border-red-500 flex items-center gap-3 text-xl"
+                 
+                 <div className="h-10 w-px bg-slate-700 mx-2" />
+
+                 <div className="flex gap-2">
+                    {selectedArea.levels.map(level => (
+                        <motion.button
+                            key={level.id}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => startBattle(level)}
+                            className={`
+                                px-4 py-2 rounded-lg border font-bold transition-all
+                                ${level.name === '初級' ? 'bg-green-900/40 border-green-500 hover:bg-green-900/60 text-green-100' : ''}
+                                ${level.name === '中級' ? 'bg-orange-900/40 border-orange-500 hover:bg-orange-900/60 text-orange-100' : ''}
+                                ${level.name === '上級' ? 'bg-purple-900/40 border-purple-500 hover:bg-purple-900/60 text-purple-100' : ''}
+                            `}
+                        >
+                            {level.name}
+                        </motion.button>
+                    ))}
+                 </div>
+
+                <button 
+                    onClick={() => setSelectedArea(null)} 
+                    className="ml-4 flex items-center gap-1 text-slate-400 hover:text-white transition-colors"
                 >
-                    <Swords size={24} /> バトル開始
-                </motion.button>
-                <button onClick={() => setSelectedDungeon(null)} className="text-slate-400 hover:text-white underline">
-                    戻る
+                    <ChevronLeft size={18} /> 戻る
                 </button>
             </div>
           )
